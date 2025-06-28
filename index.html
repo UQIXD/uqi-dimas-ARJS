@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>AR Scale Per Objek</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/2.2.1/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene embedded arjs>
+
+      <a-assets>
+        <audio id="bgm" src="war.mp3" preload="auto"></audio>
+      </a-assets>
+
+      <a-marker preset="hiro" id="marker">
+        <a-entity id="obj1"
+                  gltf-model="url(wyvern.glb)"
+                  animation-mixer
+                  position="-0.3 0 0">
+        </a-entity>
+
+        <a-entity id="obj2"
+                  gltf-model="url(whale.glb)"
+                  animation-mixer
+                  position="0.3 0 0">
+                  
+        </a-entity>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+      const obj1 = document.querySelector('#obj1'); // wyvern
+      const obj2 = document.querySelector('#obj2'); // whale
+      const marker = document.querySelector('#marker');
+      const bgm = document.querySelector('#bgm');
+
+      let isAudioInitialized = false;
+      document.body.addEventListener('click', () => {
+        if (!isAudioInitialized) {
+          bgm.play().catch(() => {});
+          isAudioInitialized = true;
+        }
+      });
+
+      marker.addEventListener('markerFound', () => bgm.play());
+      marker.addEventListener('markerLost', () => {
+        bgm.pause();
+        bgm.currentTime = 0;
+      });
+
+      let modelsLoaded = 0;
+      obj1.addEventListener('model-loaded', () => {
+        modelsLoaded++;
+        if (modelsLoaded === 2) autoScaleIndividually();
+      });
+
+      obj2.addEventListener('model-loaded', () => {
+        modelsLoaded++;
+        if (modelsLoaded === 2) autoScaleIndividually();
+      });
+
+      function autoScaleIndividually() {
+        const scaleToFit = (modelEntity, targetSize = 1.0) => {
+          const bbox = new THREE.Box3().setFromObject(modelEntity.object3D);
+          const size = bbox.getSize(new THREE.Vector3());
+          const maxDimension = Math.max(size.x, size.y, size.z);
+          const scaleFactor = targetSize / maxDimension;
+
+          modelEntity.setAttribute('scale', {
+            x: scaleFactor,
+            y: scaleFactor,
+            z: scaleFactor
+          });
+        };
+
+        // Buat wyvern pas di marker (misalnya 1 unit penuh)
+        scaleToFit(obj1, 1.5);
+
+        // Buat whale sedikit lebih besar dari default agar seimbang
+        scaleToFit(obj2, 0.5);  // kamu bisa ubah ke 2.5 jika masih terlalu kecil
+      }
+    </script>
+  </body>
+</html>
