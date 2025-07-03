@@ -5,27 +5,28 @@
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/2.2.1/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-
   </head>
-  <body style="margin: 0; overflow: hidden;">
+  <body style="margin: 0; overflow: hidden">
     <a-scene embedded arjs>
-
       <a-assets>
         <audio id="bgm" src="war.mp3" preload="auto"></audio>
       </a-assets>
 
       <a-marker preset="hiro" id="marker">
-        <a-entity id="obj1"
-                  gltf-model="url(wyvern.glb)"
-                  animation-mixer
-                  position="-0.3 0 0">
+        <a-entity
+          id="obj1"
+          gltf-model="url(wyvern.glb)"
+          animation-mixer
+          position="-0.8 0 0"
+        >
         </a-entity>
 
-        <a-entity id="obj2"
-                  gltf-model="url(whale.glb)"
-                  animation-mixer
-                  position="0.3 0 0">
-                  
+        <a-entity
+          id="obj2"
+          gltf-model="url(whale.glb)"
+          animation-mixer
+          position="0.8 0 0"
+        >
         </a-entity>
       </a-marker>
 
@@ -33,34 +34,42 @@
     </a-scene>
 
     <script>
-      const obj1 = document.querySelector('#obj1'); // wyvern
-      const obj2 = document.querySelector('#obj2'); // whale
-      const marker = document.querySelector('#marker');
-      const bgm = document.querySelector('#bgm');
+      const obj1 = document.querySelector("#obj1"); // wyvern
+      const obj2 = document.querySelector("#obj2"); // whale
+      const marker = document.querySelector("#marker");
+      const bgm = document.querySelector("#bgm");
 
       let isAudioInitialized = false;
-      document.body.addEventListener('click', () => {
+      document.body.addEventListener("click", () => {
         if (!isAudioInitialized) {
           bgm.play().catch(() => {});
           isAudioInitialized = true;
         }
       });
 
-      marker.addEventListener('markerFound', () => bgm.play());
-      marker.addEventListener('markerLost', () => {
+      marker.addEventListener("markerFound", () => {
+        bgm.play();
+        startRandomMotion(); // Mulai gerakan ketika marker ditemukan
+      });
+
+      marker.addEventListener("markerLost", () => {
         bgm.pause();
         bgm.currentTime = 0;
       });
 
       let modelsLoaded = 0;
-      obj1.addEventListener('model-loaded', () => {
+      obj1.addEventListener("model-loaded", () => {
         modelsLoaded++;
-        if (modelsLoaded === 2) autoScaleIndividually();
+        if (modelsLoaded === 2) {
+          autoScaleIndividually();
+        }
       });
 
-      obj2.addEventListener('model-loaded', () => {
+      obj2.addEventListener("model-loaded", () => {
         modelsLoaded++;
-        if (modelsLoaded === 2) autoScaleIndividually();
+        if (modelsLoaded === 2) {
+          autoScaleIndividually();
+        }
       });
 
       function autoScaleIndividually() {
@@ -70,18 +79,62 @@
           const maxDimension = Math.max(size.x, size.y, size.z);
           const scaleFactor = targetSize / maxDimension;
 
-          modelEntity.setAttribute('scale', {
+          modelEntity.setAttribute("scale", {
             x: scaleFactor,
             y: scaleFactor,
-            z: scaleFactor
+            z: scaleFactor,
           });
         };
 
-        // Buat wyvern pas di marker (misalnya 1 unit penuh)
         scaleToFit(obj1, 1.5);
+        scaleToFit(obj2, 0.5);
+      }
 
-        // Buat whale sedikit lebih besar dari default agar seimbang
-        scaleToFit(obj2, 0.5);  // kamu bisa ubah ke 2.5 jika masih terlalu kecil
+      // ===== Random Flying Motion Section =====
+      let flyingInterval;
+
+      function startRandomMotion() {
+        if (flyingInterval) clearInterval(flyingInterval); // Hindari duplikasi
+
+        const range = 1.5; // Area gerak
+        const minDistance = 0.5; // Jarak minimum antar objek
+
+        flyingInterval = setInterval(() => {
+          const getRandomPos = () => {
+            return {
+              x: (Math.random() - 0.5) * range * 2,
+              y: Math.random() * 1.5,
+              z: (Math.random() - 0.5) * range * 2,
+            };
+          };
+
+          let pos1 = getRandomPos();
+          let pos2 = getRandomPos();
+
+          // Pastikan tidak terlalu dekat
+          while (distance(pos1, pos2) < minDistance) {
+            pos2 = getRandomPos();
+          }
+
+          moveTo(obj1, pos1);
+          moveTo(obj2, pos2);
+        }, 3000); // Ganti posisi setiap 3 detik
+      }
+
+      function distance(p1, p2) {
+        return Math.sqrt(
+          (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 + (p1.z - p2.z) ** 2
+        );
+      }
+
+      function moveTo(entity, newPos) {
+        const posAttr = `${newPos.x} ${newPos.y} ${newPos.z}`;
+        entity.setAttribute("animation", {
+          property: "position",
+          to: posAttr,
+          dur: 2500,
+          easing: "easeInOutQuad",
+        });
       }
     </script>
   </body>
